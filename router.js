@@ -14,13 +14,13 @@ router
   .post('/signin',user.signin)
   .get('/signup',user.showSignup)
   .post('/signup',user.signup)
-  .post('/signout',user.signout)
+  .get('/signout',user.signout)
 
 
 //   话题相关
 router
   .get('/topic/create',topic.showCreate)
-  .post('/topic',topic.create)
+  .post('/topic/create',topic.create)
   .get('/topic/:topicID',topic.show)
   .get('/topic/:topicID/edit',topic.showEdit)
   .post('/topic/:topicID/edit',topic.edit)

@@ -1,21 +1,47 @@
-var mysql = require('mysql');
-const moment=require('moment')
-var connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : 'root',
-  password : '123',
-  database : 'ithub'
-});
 
+const moment=require('moment')
+const user=require('../models/user')
+const md5=require('md5')
 exports.showSignin=(req,res)=>{
-  res.render('siginin')
+  res.render('signin.html')
 }
 
 exports.signin=(req,res)=>{
-  res.send('signin')
+  const body=req.body
+  user.getByEmail(body.email,(err,user)=>{
+    if(err){
+      return res.send({
+        code:500,
+        message:err.message
+      })
+    }
+    if(!user){
+      return res.send({
+        code:1,
+        message:"用户不存在"
+      })
+    }
+    if(md5(body.password) !== user.password){
+      return res.send({
+        code:2,
+        message:'密码不正确'
+      })
+    }
+    // shi使用session保存会话状态
+    req.session.user=user
+
+    res.send({
+      code:200,
+      message:'登录成功 '
+    })
+      
+   
+
+  })
 }
 
 exports.showSignup=(req,res)=>{
+ 
   res.render('signup.html')
 }
 
@@ -26,57 +52,55 @@ exports.signup=(req,res)=>{
   const body=req.body
     //  console.log(body)
     // 链接数据库
-    const mysqlStr='SELECT * FROM `users` WHERE `email`=?'
-    connection.query(mysqlStr,[body.email],(err,results)=>{
+   user.getByEmail(body.email,(err,results)=>{
+    if(err){
+      return res.send({
+        code:500,
+        message:err.message
+      })
+    }
+    if(results){
+      return res.send({
+        code:1,
+        message:"邮箱已被占用"
+      })
+    }
+
+    user.getByNickname(body.nickname,(err,results)=>{
       if(err){
         return res.send({
           code:500,
           message:err.message
         })
       }
-      if(results[0]){
+      if(results){
         return res.send({
-          code:1,
-          message:"邮箱已被占用"
+          code:2,
+          message:"昵称已被占用"
         })
       }
-      connection.query('select * from users where nickname =?',[body.nickname],(err,results)=>{
+      body.password=md5(body.password)
+      body.createdAt=moment().format('YYYY-MM-DD HH:mm:ss')
+      user.create(body,(err,results)=>{
         if(err){
           return res.send({
             code:500,
             message:err.message
           })
         }
-        if(results[0]){
+        
           return res.send({
-            code:2,
-            message:"昵称已被占用"
+            code:200,
+            message:'ok'
           })
-        }
-        body.createdAt=moment().format('YYYY-MM-DD HH:mm:ss')
-    // 都没有错把数据添加到数据表中
-    connection.query('insert into users set?',body,(err,results)=>{
-      if(err){
-        return res.send({
-          code:500,
-          message:err.message
-        })
-      }
       
-        return res.send({
-          code:200,
-          message:'ok'
-        })
-    
-    })
       })
-     
     })
+   })
    
-   
- 
-}
-
+        
+  }  
 exports.signout=(req,res)=>{
-  res.send('signout')
+  delete req.session.user
+  res.redirect('/signin')
 }
